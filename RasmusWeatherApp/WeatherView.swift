@@ -1,45 +1,57 @@
 import SwiftUI
-import CoreLocation
-import WidgetKit
 
 struct WeatherView: View {
-    @StateObject private var weatherManager = WeatherManager()
-    
+    @Bindable var weatherManager: WeatherManager
+    @Bindable var locationManager: LocationManager
+
     var body: some View {
-        VStack {
-            if weatherManager.isLoading {
-                ProgressView("Laddar väder...")
-            } else if let weather = weatherManager.weatherData {
-                VStack(spacing: 10) {
-                    Text("Väderinformation")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    Text("Temperatur: \(String(format: "%.1f", weather.current.temperature_2m))°C")
-                        .font(.headline)
-                    
-                    HStack {
-                        Text("Max: \(String(format: "%.1f", weather.daily.temperature_2m_max.first ?? 0.0))°C")
-                        Text("Min: \(String(format: "%.1f", weather.daily.temperature_2m_min.first ?? 0.0))°C")
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    if weatherManager.isLoading {
+                        ProgressView()
+                    } else if let weather = weatherManager.weatherData {
+                        // Current Weather
+                        CurrentWeatherView(weather: weather)
+                        
+                        Divider()
+                        
+                        // 7-Day Forecast
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("7-Day Forecast")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                            ForEach(0..<7, id: \.self) { index in
+                                NavigationLink(destination: DailyForecastDetailView(
+                                    date: weather.daily.time[index],
+                                    maxTemp: weather.daily.temperature_2m_max[index],
+                                    minTemp: weather.daily.temperature_2m_min[index],
+                                    weatherCode: weather.daily.weather_code[index]
+                                )) {
+                                    DailyForecastRow(
+                                        date: weather.daily.time[index],
+                                        maxTemp: weather.daily.temperature_2m_max[index],
+                                        minTemp: weather.daily.temperature_2m_min[index],
+                                        weatherCode: weather.daily.weather_code[index]
+                                    )
+                                }
+                            }
+                        }
+                        .padding()
+                    } else {
+                        Text("No weather data available")
+                            .foregroundColor(.gray)
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
                 }
-                .padding()
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(10)
-            } else {
-                Text("Inget väderdata tillgängligt")
-                    .foregroundColor(.gray)
             }
-        }
-        .padding()
-        .onAppear {
-            Task {
-                do {
-                    try await weatherManager.loadWeather(latitude: 52.52, longitude: 13.41)
-                } catch {
-                    print("Fel vid hämtning av väderdata: \(error)")
+            .navigationTitle(locationManager.address?.locality ?? "Weather")
+            .refreshable {
+                if let location = locationManager.location {
+                    await weatherManager.loadWeather(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude
+                    )
                 }
             }
         }

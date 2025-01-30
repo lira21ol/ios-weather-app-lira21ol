@@ -1,66 +1,66 @@
-//
-//  ContentView.swift
-//  RasmusWeatherApp
-//
-//  Created by Rasmus Lindholm on 2025-01-19.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var weatherManager = WeatherManager()
+    @State private var locationManager = LocationManager()
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        Group {
+            switch locationManager.authorizationStatus {
+            case .notDetermined:
+                RequestLocationView {
+                    locationManager.requestLocationPermission()
                 }
-                .onDelete(perform: deleteItems)
+            case .restricted, .denied:
+                LocationDeniedView()
+            case .authorizedWhenInUse, .authorizedAlways:
+                WeatherView(
+                    weatherManager: weatherManager,
+                    locationManager: locationManager
+                )
+            @unknown default:
+                Text("Unknown authorization status")
             }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("test", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+        }
+        .onAppear {
+            locationManager.weatherManager = weatherManager
         }
     }
+}
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+struct RequestLocationView: View {
+    let requestPermission: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Weather App Needs Your Location")
+                .font(.title2)
+            Text("Please allow location access to see weather information")
+                .foregroundColor(.secondary)
+            Button("Allow Location Access", action: requestPermission)
+                .buttonStyle(.borderedProminent)
         }
+        .padding()
+        .multilineTextAlignment(.center)
     }
+}
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+struct LocationDeniedView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "location.slash")
+                .font(.largeTitle)
+                .foregroundColor(.red)
+            Text("Location Access Required")
+                .font(.title2)
+            Text("Please enable location access in Settings")
+                .foregroundColor(.secondary)
         }
+        .padding()
+        .multilineTextAlignment(.center)
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
