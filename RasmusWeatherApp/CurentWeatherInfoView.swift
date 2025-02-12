@@ -14,11 +14,6 @@ struct CurentWeatherInfoView: View {
                     .frame(height: 280)
                 
                 
-                WeatherInfoView(weather: $weather)
-                    .fixedSize()
-                    .offset(y: -150)
-                    .padding(.bottom, -130)
-                
                 LocationRow(weather: weather, locationManager: locationManager)
                     .offset(y: -60)
                 

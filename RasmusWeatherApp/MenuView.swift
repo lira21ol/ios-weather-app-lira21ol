@@ -17,7 +17,7 @@ struct MenuView: View {
                     NavigationLink(
                         destination: CurentWeatherInfoView(weather: $weather, locationManager: $locationManager),
                         label: {
-                        Image(systemName: "sun.max.fill")
+                        Image(systemName: "map.fill")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 200, height: 30)
