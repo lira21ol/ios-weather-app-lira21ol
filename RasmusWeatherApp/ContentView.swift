@@ -14,10 +14,15 @@ struct ContentView: View {
             case .restricted, .denied:
                 LocationDeniedView()
             case .authorizedWhenInUse, .authorizedAlways:
-                WeatherView(
-                    weatherManager: weatherManager,
-                    locationManager: locationManager
-                )
+                VStack {
+                    // Add MenuView here, passing the bindings
+                    MenuView(weather: $weatherManager, locationManager: $locationManager)
+                    
+                    WeatherView(
+                        weatherManager: weatherManager,
+                        locationManager: locationManager
+                    )
+                }
             @unknown default:
                 Text("Unknown authorization status")
             }
